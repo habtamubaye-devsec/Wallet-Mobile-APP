@@ -21,7 +21,15 @@ export const useTransactions = (userId) => {
     try {
       const response = await fetch(`${API_URL}/transactions/${userId}`);
       const data = await response.json();
-      setTransactions(data);
+      const sorted = [...data].sort((a, b) => {
+        const aTime = new Date(a.created_at).getTime();
+        const bTime = new Date(b.created_at).getTime();
+
+        if (aTime !== bTime) return bTime - aTime;
+        return (b.id || 0) - (a.id || 0);
+      });
+
+      setTransactions(sorted);
     } catch (error) {
       console.error("Error fetching transactions:", error);
     }
