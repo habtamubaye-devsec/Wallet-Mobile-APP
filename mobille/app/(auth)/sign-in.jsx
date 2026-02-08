@@ -16,6 +16,14 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const logSignInAttempt = (status, details = {}) => {
+    console.info("Sign-in attempt", {
+      email: emailAddress,
+      status,
+      ...details,
+    });
+  };
+
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {
     if (!isLoaded) return;
@@ -30,14 +38,26 @@ export default function Page() {
       // If sign-in process is complete, set the created session as active
       // and redirect the user
       if (signInAttempt.status === "complete") {
+        logSignInAttempt("complete");
         await setActive({ session: signInAttempt.createdSessionId });
         router.replace("/");
       } else {
         // If the status isn't complete, check why. User might need to
         // complete further steps.
-        console.error(JSON.stringify(signInAttempt, null, 2));
+        logSignInAttempt("incomplete", { nextStatus: signInAttempt.status });
+        if (signInAttempt.status === "needs_second_factor") {
+          setError(
+            "Two-factor authentication is required. Check your email for the verification code and continue sign-in."
+          );
+        } else {
+          setError("Sign-in is not complete yet. Please try again.");
+        }
       }
     } catch (err) {
+      logSignInAttempt("error", {
+        code: err?.errors?.[0]?.code,
+        message: err?.errors?.[0]?.message,
+      });
       if (err.errors?.[0]?.code === "form_identifier_exists") {
         setError("That email address is already in use. Please try another.");
       } else {
